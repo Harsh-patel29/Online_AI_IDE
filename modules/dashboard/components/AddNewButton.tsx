@@ -8,9 +8,24 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import TemplateSelectionModal from "./TemplateSelectingModel";
-
+import { Template } from "../types";
+import { createPlayGround } from "../actions";
 const AddNewButton = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTemplate, setselectedTemplate] = useState<Template | null>(
+    null
+  );
+
+  const router = useRouter();
+
+  const handleSubmit = async (data: Template) => {
+    setselectedTemplate(data);
+
+    const res = await createPlayGround(data);
+    toast.success("Playground created successfully");
+    setIsModalOpen(false);
+    router.push(`/playground/${res?.id}`);
+  };
 
   return (
     <>
@@ -51,11 +66,11 @@ const AddNewButton = () => {
           />
         </div>
       </div>
-      {/*Todo Implement Template Selecting Model here*/}
+
       <TemplateSelectionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={() => {}}
+        onSubmit={handleSubmit}
       />
     </>
   );
