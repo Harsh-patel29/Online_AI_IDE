@@ -22,7 +22,7 @@ export default async function DashBaordLayout({
     id: item.id,
     name: item.title,
     //todo: star
-    starred: false,
+    starred: item.StarMark[0]?.isMarked || false,
     icon: techonologyIconMap[item.template] || "Code2",
   }));
 
