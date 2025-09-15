@@ -179,7 +179,7 @@ export default function ProjectTable({
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
                     <Link
-                      href={`/playgroung/${project.id}`}
+                      href={`/playground/${project.id}`}
                       className="hover:underline"
                     >
                       <span className="font-semibold">{project.title}</span>
