@@ -1,0 +1,277 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { TemplateFolder } from "@/modules/playground/lib/path-to-json";
+import { WebContainer } from "@webcontainer/api";
+import { transformToWebContainerFormat } from "../hooks/transformer";
+import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+
+interface WebContainerPreviewProps {
+  templateData: TemplateFolder;
+  serverUrl: string;
+  isLoading: boolean;
+  error: string | null;
+  instance: WebContainer | null;
+  writeFileSync: (path: string, content: string) => Promise<void>;
+  forceResetup: boolean;
+}
+
+const WebContainerPreview = ({
+  error,
+  instance,
+  isLoading,
+  serverUrl,
+  writeFileSync,
+  forceResetup,
+  templateData,
+}: WebContainerPreviewProps) => {
+  const [previewUrl, setpreviewUrl] = useState<string>("");
+  const [loadingState, setloadingState] = useState({
+    transforming: false,
+    mounting: false,
+    installing: false,
+    starting: false,
+    ready: false,
+  });
+  const [currentStep, setcurrentStep] = useState(0);
+  const totalStep = 4;
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [isSetupComplete, setisSetupComplete] = useState<boolean>(false);
+  const [isSetupInProgress, setisSetupInProgress] = useState<boolean>(false);
+  console.log("previewUrl", previewUrl);
+
+  useEffect(() => {
+    async function setupContainer() {
+      console.log("hello");
+      // ✅ Only run setup if instance exists, and we're not already running setup, and it's not complete
+      if (!instance || isSetupComplete || isSetupInProgress) return;
+      console.log("hello2");
+
+      try {
+        setisSetupInProgress(true);
+        setSetupError(null);
+
+        try {
+          const packageJsonExists = await instance.fs.readFile(
+            "package.json",
+            "utf8"
+          );
+
+          if (packageJsonExists) {
+            // Files are already mounted, just reconnect to existing server
+
+            instance.on("server-ready", (port: number, url: string) => {
+              console.log("Server ready at:", url);
+              setpreviewUrl(url);
+              setloadingState((prev) => ({
+                ...prev,
+                starting: false,
+                ready: true,
+              }));
+            });
+
+            setcurrentStep(4);
+            setloadingState((prev) => ({ ...prev, starting: true }));
+            return;
+          }
+        } catch (error) {}
+
+        // Step-1 transform data
+        setloadingState((prev) => ({ ...prev, transforming: true }));
+        setcurrentStep(1);
+        // Write to terminal
+
+        // @ts-ignore
+        const files = transformToWebContainerFormat(templateData);
+        setloadingState((prev) => ({
+          ...prev,
+          transforming: false,
+          mounting: true,
+        }));
+        setcurrentStep(2);
+
+        //  Step-2 Mount Files
+
+        await instance.mount(files);
+
+        setloadingState((prev) => ({
+          ...prev,
+          mounting: false,
+          installing: true,
+        }));
+        setcurrentStep(3);
+
+        // Step-3 Install dependencies
+
+        const installProcess = await instance.spawn("npm", ["install"]);
+
+        installProcess.output.pipeTo(
+          new WritableStream({
+            write(data) {},
+          })
+        );
+
+        const installExitCode = await installProcess.exit;
+
+        if (installExitCode !== 0) {
+          throw new Error(
+            `Failed to install dependencies. Exit code: ${installExitCode}`
+          );
+        }
+
+        setloadingState((prev) => ({
+          ...prev,
+          installing: false,
+          starting: true,
+        }));
+        setcurrentStep(4);
+
+        // STEP-4 Start The Server
+
+        const startProcess = await instance.spawn("npm", ["run", "start"]);
+
+        instance.on("server-ready", (port: number, url: string) => {
+          setpreviewUrl(url);
+          setloadingState((prev) => ({
+            ...prev,
+            starting: false,
+            ready: true,
+          }));
+          setisSetupComplete(true);
+          setisSetupInProgress(false);
+        });
+
+        // Handle start process output - stream to terminal
+        startProcess.output.pipeTo(
+          new WritableStream({
+            write(data) {},
+          })
+        );
+      } catch (err) {
+        console.error("Error setting up container:", err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        setSetupError(errorMessage);
+        setisSetupInProgress(false);
+        setloadingState({
+          transforming: false,
+          mounting: false,
+          installing: false,
+          starting: false,
+          ready: false,
+        });
+      }
+    }
+
+    setupContainer();
+  }, [instance, templateData, isSetupComplete, isSetupInProgress]);
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md p-6 rounded-lg bg-gray-50 dark:bg-gray-900">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <h3 className="text-lg font-medium">Initializing WebContainer</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Setting up the environment for your project...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || setupError) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-6 rounded-lg max-w-md">
+          <div className="flex items-center gap-2 mb-3">
+            <XCircle className="h-5 w-5" />
+            <h3 className="font-semibold">Error</h3>
+          </div>
+          <p className="text-sm">{error || setupError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getStepIcon = (stepIndex: number) => {
+    if (stepIndex < currentStep) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    } else if (stepIndex === currentStep) {
+      return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+    } else {
+      return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />;
+    }
+  };
+
+  const getStepText = (stepIndex: number, label: string) => {
+    const isActive = stepIndex === currentStep;
+    const isComplete = stepIndex < currentStep;
+
+    return (
+      <span
+        className={`text-sm font-medium ${
+          isComplete
+            ? "text-green-600"
+            : isActive
+            ? "text-blue-600"
+            : "text-gray-500"
+        }`}
+      >
+        {label}
+      </span>
+    );
+  };
+
+  return (
+    <div className="h-full w-full flex flex-col">
+      {!previewUrl ? (
+        <div className="h-full flex flex-col">
+          <div className="w-full max-w-md p-6 m-5 rounded-lg bg-white dark:bg-zinc-800 shadow-sm mx-auto">
+            <Progress
+              value={(currentStep / totalStep) * 100}
+              className="h-2 mb-6"
+            />
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3">
+                {getStepIcon(1)}
+                {getStepText(1, "Transforming template data")}
+              </div>
+              <div className="flex items-center gap-3">
+                {getStepIcon(2)}
+                {getStepText(2, "Mounting files")}
+              </div>
+              <div className="flex items-center gap-3">
+                {getStepIcon(3)}
+                {getStepText(3, "Installing dependencies")}
+              </div>
+              <div className="flex items-center gap-3">
+                {getStepIcon(4)}
+                {getStepText(4, "Starting development server")}
+              </div>
+            </div>
+          </div>
+
+          {/* Terminal */}
+          <div className="flex-1 p-4"></div>
+        </div>
+      ) : (
+        <div className="h-full flex flex-col">
+          <div className="flex-1">
+            <iframe
+              src={previewUrl}
+              className="w-full h-full border-none"
+              title="WebContainer Preview"
+            />
+          </div>
+
+          <div className="h-64 border-t"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WebContainerPreview;
