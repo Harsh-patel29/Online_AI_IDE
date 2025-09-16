@@ -2,17 +2,45 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { TemplateFileTree } from "@/modules/playground/components/playground-explorer";
+import { useFileExplorer } from "@/modules/playground/hooks/use-File-explorer";
 import { usePlayground } from "@/modules/playground/hooks/use-playground";
+import { TemplateFile } from "@/modules/playground/lib/path-to-json";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { useParams } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 
 const PlayGroundPage = () => {
   const { id } = useParams<{ id: string }>();
   const { playgroundData, templateData } = usePlayground(id);
+  const {
+    activeFileId,
+    closeAllFiles,
+    openFile,
+    openFiles,
+    closeFile,
+    setActiveFileId,
+    setEditorContent,
+    setOpenFiles,
+    setPlaygroundId,
+    setTemplateData,
+  } = useFileExplorer();
 
-  const handleFileSelect = () => {};
-  const activeFile = "sample.txt";
+  useEffect(() => {
+    setPlaygroundId(id);
+  }, [id, setPlaygroundId]);
+
+  useEffect(() => {
+    if (templateData && !openFiles.length) {
+      setTemplateData(templateData);
+    }
+  }, [templateData, setTemplateData, openFiles.length]);
+
+  const activeFile = openFiles.find((file) => file.id === activeFileId);
+  const hasUnsavedChanges = openFiles.some((file) => file.hasUnSavedChanges);
+  const handleFileSelect = (file: TemplateFile): void => {
+    openFile(file);
+  };
+
   const wrappedHandleAddFile = () => {};
   const wrappedHandleAddFolder = () => {};
   const wrappedHandleDeleteFile = () => {};
