@@ -22,7 +22,7 @@ interface ScanOptions {
 }
 /**
  * @param templatePath
- * @param option
+ * @param options
  * @returns
  **/
 
@@ -94,13 +94,14 @@ export async function scanTemplateDirectory(
   const folderName = path.basename(templatePath);
 
   return processDirectory(folderName, templatePath, mergedOptions);
-
-  /**
-   * @param folderName
-   * @param folderPath
-   * @param options
-   */
 }
+
+/**
+ * @param folderName
+ * @param folderPath
+ * @param options
+ * @returns
+ */
 
 async function processDirectory(
   folderName: string,
@@ -179,12 +180,10 @@ async function processDirectory(
 }
 
 /**
-
- * 
- * @param templatePath 
- * @param outputPath 
- * @param options 
- * @returns 
+ * @param templatePath
+ * @param outputPath
+ * @param options
+ * @returns
  */
 
 export async function saveTemplateStructureToJson(
