@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
+import { AIChatSidePanel } from "@/modules/ai-chat/components/ai-chat-sidebar-panel";
 
 interface ToggleAIProps {
   isEnabled: boolean;
@@ -44,6 +46,10 @@ const ToggleAI: React.FC<ToggleAIProps> = ({
   loadingProgress = 0,
   activeFeature,
 }) => {
+  const { theme, systemTheme } = useTheme();
+
+  const currentTheme = theme === "system" ? systemTheme : theme;
+
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Dummy handler for code insertion from AI chat panel
@@ -185,6 +191,12 @@ const ToggleAI: React.FC<ToggleAIProps> = ({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AIChatSidePanel
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        theme={currentTheme}
+      />
     </>
   );
 };

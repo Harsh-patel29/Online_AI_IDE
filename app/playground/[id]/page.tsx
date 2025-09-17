@@ -62,7 +62,7 @@ const MainPlaygroundPage = () => {
     usePlayground(id);
 
   const aiSuggestions = useAISuggestions();
-  console.log(aiSuggestions);
+
   const {
     setTemplateData,
     setActiveFileId,
