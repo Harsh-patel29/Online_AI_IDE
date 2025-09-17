@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-
+import { checkAndUseApi } from "@/modules/playground/actions/index";
+import { toast } from "sonner";
 dotenv.config();
 
 interface CodeSuggestionRequest {
@@ -138,22 +139,19 @@ Generate suggestion:`;
 }
 
 async function generateSuggestion(prompt: string) {
+  let suggestion;
+  const checkCallApi = await checkAndUseApi();
+  if (checkCallApi.success === false) {
+    suggestion = checkCallApi.message;
+    return suggestion;
+  }
   try {
     const ai = new GoogleGenAI({});
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        maxOutputTokens: 300,
-        temperature: 0.7,
-        // thinkingConfig: {
-        //   includeThoughts: true,
-        //   thinkingBudget: 1,
-        // },
-      },
     });
-    let suggestion = response.text;
+    suggestion = response.text;
 
     if (suggestion?.includes("```")) {
       const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);

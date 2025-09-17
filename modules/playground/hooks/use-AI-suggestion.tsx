@@ -55,11 +55,12 @@ export const useAISuggestions = (): UseAISuggestionReturns => {
             cursorColumn: cursorPosition.column - 1,
             suggestionType: type,
           };
-          const response = await fetch("/api/code-suggestions", {
+          const response = await fetch("/api/code-completion", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
+          console.log("res", response);
           if (!response.ok) {
             throw new Error(`API responded with status ${response.status}`);
           }
