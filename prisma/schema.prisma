@@ -31,6 +31,8 @@ model User {
   firstCallAt DateTime?
   myPlayground PlayGround[]
   staredPlayground StarMark[]
+  chatMessages ChatMessage[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt 
 }
@@ -96,4 +98,17 @@ model TemplateFile {
   updatedAt DateTime @updatedAt
   playgroundId String @unique
   playground PlayGround @relation(fields: [playgroundId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id String @id @default(cuid()) 
+  userId String
+  role String
+  content Json
+  createdAt DateTime @default(now())
+  apiCalls Int @default(0)
+  firstCallAt DateTime? @default(now())
+
+  user User @relation(fields: [userId],references: [id], onDelete: Cascade)
+  @@index([userId])
 }

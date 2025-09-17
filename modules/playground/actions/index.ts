@@ -92,3 +92,52 @@ export const checkAndUseApi = async () => {
   });
   return { success: true, message: "API call allowed" };
 };
+export const checkAndUseApiChatBot = async (chatMessageId: string) => {
+  const LoggedInuser = await currentUser();
+  const ChatMessage = await db.chatMessage.findUnique({
+    where: { userId: LoggedInuser?.id, id: chatMessageId },
+  });
+  if (!ChatMessage) throw new Error("User not found");
+  const now = new Date();
+
+  if (!ChatMessage.firstCallAt) {
+    await db.chatMessage.update({
+      where: { id: LoggedInuser?.id },
+      data: {
+        apiCalls: 1,
+        firstCallAt: now,
+      },
+    });
+    return { success: true, message: "API call allowed (first call)" };
+  }
+
+  const diff = now.getTime() - new Date(ChatMessage.firstCallAt).getTime();
+  const twentyFourHours = 24 * 60 * 60 * 1000;
+
+  if (diff > twentyFourHours) {
+    await db.chatMessage.update({
+      where: { id: LoggedInuser?.id },
+      data: {
+        apiCalls: 0,
+        firstCallAt: now,
+      },
+    });
+    return { success: true, message: "API call allowed (new 24h window)" };
+  }
+
+  if (ChatMessage.apiCalls >= 2) {
+    return {
+      success: false,
+      message:
+        "API call reached (2 out of 2) in  24h. Plese try after 24 hours",
+    };
+  }
+
+  await db.chatMessage.update({
+    where: { id: LoggedInuser?.id },
+    data: {
+      apiCalls: { increment: 1 },
+    },
+  });
+  return { success: true, message: "API call allowed" };
+};
