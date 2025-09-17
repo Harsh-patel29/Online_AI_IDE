@@ -27,6 +27,8 @@ model User {
   image String?
   accounts Account[]
   role UserRole @default(USER)
+  apiCalls Int @default(0)
+  firstCallAt DateTime?
   myPlayground PlayGround[]
   staredPlayground StarMark[]
   createdAt DateTime @default(now())
