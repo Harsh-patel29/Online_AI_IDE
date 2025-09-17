@@ -25,7 +25,6 @@ export const PlaygroundEditor = ({
   const handleEditorDidMount = (editor: any, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
-    console.log("Editor instance mounted: ", !!editorRef.current);
 
     editor.updateOptions({
       ...defaultEditorOptions,
