@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/modules/auth/actions";
 import { Prisma } from "@prisma/client";
 import { checkAndUseApiChatBot } from "@/modules/playground/actions";
-import { toast } from "sonner";
 
 dotenv.config();
 
@@ -46,7 +45,7 @@ Always provide clear, practical answers. Use proper code formatting when showing
     }
     return response.text;
   } catch (error) {
-    console.error("Error getting AI response");
+    console.error("Error getting AI response", error);
     throw new Error("Error getting AI response");
   }
 }
@@ -67,17 +66,18 @@ export async function POST(req: NextRequest) {
     const existing = await db.chatMessage.findFirst({
       where: { userId: user?.id },
     });
-    const apiCalls = await checkAndUseApiChatBot(existing?.id!);
+    if (existing) {
+      const apiCalls = await checkAndUseApiChatBot(existing?.id);
 
-    if (apiCalls.success === false) {
-      return NextResponse.json(
-        {
-          response: apiCalls.message,
-        },
-        { status: 200 }
-      );
+      if (apiCalls.success === false) {
+        return NextResponse.json(
+          {
+            response: apiCalls.message,
+          },
+          { status: 200 }
+        );
+      }
     }
-    let messages: ChatMessage[];
 
     if (existing && Array.isArray(existing.content)) {
       history = existing.content as unknown as ChatMessage[];
@@ -85,7 +85,10 @@ export async function POST(req: NextRequest) {
 
     const recentHistory = history.slice(-10);
 
-    messages = [...recentHistory, { role: "user", content: message }];
+    const messages: ChatMessage[] = [
+      ...recentHistory,
+      { role: "user", content: message },
+    ];
     const aiResponse = await generateAIResponse(messages);
 
     const newMessages: ChatMessage[] = [
@@ -109,14 +112,18 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
-      chatMessage = await db.chatMessage.create({
-        data: {
-          userId: user?.id!,
-          role: "user",
-          content: newMessages as unknown as Prisma.JsonArray,
-          apiCalls: 1,
-        },
-      });
+      if (user && user?.id) {
+        chatMessage = await db.chatMessage.create({
+          data: {
+            userId: user.id,
+            role: "user",
+            content: newMessages as unknown as Prisma.JsonArray,
+            apiCalls: 1,
+          },
+        });
+      } else {
+        throw new Error("User not found");
+      }
     }
 
     return NextResponse.json(

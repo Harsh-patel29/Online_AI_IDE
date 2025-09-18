@@ -5,8 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { checkAndUseApiChatBot } from "@/modules/playground/actions/index";
-
 import {
   Loader2,
   Send,
@@ -42,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import "katex/dist/katex.min.css";
 import Image from "next/image";
+import type { Components } from "react-markdown";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -56,7 +55,7 @@ interface ChatMessage {
 interface AIChatSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  theme?: "dark" | "light";
+  theme?: string;
 }
 
 const MessageTypeIndicator: React.FC<{
@@ -105,7 +104,7 @@ const MessageTypeIndicator: React.FC<{
 export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
   isOpen,
   onClose,
-  theme = theme,
+  theme,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -262,6 +261,31 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
       if (!searchTerm) return true;
       return msg.content.toLowerCase().includes(searchTerm.toLowerCase());
     });
+  const markdownComponents: Components = {
+    code({ node, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || "");
+
+      if (match) {
+        // Block code with syntax highlighting
+        return (
+          <div className="bg-zinc-800 rounded-lg p-4 my-4">
+            <pre className="text-sm text-zinc-100 overflow-x-auto">
+              <code className={className} {...props}>
+                {children}
+              </code>
+            </pre>
+          </div>
+        );
+      }
+
+      // Inline code
+      return (
+        <code className="bg-zinc-800 px-1 py-0.5 rounded text-sm" {...props}>
+          {children}
+        </code>
+      );
+    },
+  };
 
   return (
     <TooltipProvider>
@@ -538,26 +562,7 @@ export const AIChatSidePanel: React.FC<AIChatSidePanelProps> = ({
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm, remarkMath]}
                           rehypePlugins={[rehypeKatex]}
-                          components={{
-                            code: ({ children, className, inline }) => {
-                              if (inline) {
-                                return (
-                                  <code className="bg-zinc-800 px-1 py-0.5 rounded text-sm">
-                                    {children}
-                                  </code>
-                                );
-                              }
-                              return (
-                                <div className="bg-zinc-800 rounded-lg p-4 my-4">
-                                  <pre className="text-sm text-zinc-100 overflow-x-auto">
-                                    <code className={className}>
-                                      {children}
-                                    </code>
-                                  </pre>
-                                </div>
-                              );
-                            },
-                          }}
+                          components={markdownComponents}
                         >
                           {msg.content}
                         </ReactMarkdown>

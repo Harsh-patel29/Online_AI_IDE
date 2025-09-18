@@ -29,36 +29,23 @@ import { useAISuggestions } from "@/modules/playground/hooks/use-AI-suggestion";
 import { useFileExplorer } from "@/modules/playground/hooks/use-File-explorer";
 import { usePlayground } from "@/modules/playground/hooks/use-playground";
 import { findFilePath } from "@/modules/playground/lib";
-import {
+import type {
   TemplateFile,
   TemplateFolder,
 } from "@/modules/playground/lib/path-to-json";
 import WebContainerPreview from "@/modules/webcontainers/components/WebContainerPreview";
 import { useWebContainer } from "@/modules/webcontainers/hooks/use-webcontainer";
-import {
-  AlertCircle,
-  Bot,
-  FileText,
-  FolderOpen,
-  Save,
-  Settings,
-  X,
-} from "lucide-react";
+import { EditorProps, Monaco } from "@monaco-editor/react";
+import { FileText, FolderOpen, Save, Settings, X } from "lucide-react";
 import { useParams } from "next/navigation";
-import React, {
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const MainPlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
 
-  const { playgroundData, templateData, isLoading, error, saveTemplateData } =
+  const { playgroundData, templateData, isLoading, saveTemplateData } =
     usePlayground(id);
 
   const aiSuggestions = useAISuggestions();
@@ -89,7 +76,6 @@ const MainPlaygroundPage = () => {
     error: containerError,
     instance,
     writeFileSync,
-    // @ts-ignore
   } = useWebContainer({ templateData });
 
   const lastSyncedContent = useRef<Map<string, string>>(new Map());
@@ -200,9 +186,9 @@ const MainPlaygroundPage = () => {
           JSON.stringify(latestTemplateData)
         );
 
-        // @ts-ignore
-        const updateFileContent = (items: any[]) =>
-          // @ts-ignore
+        const updateFileContent = (
+          items: (TemplateFile | TemplateFolder)[]
+        ): (TemplateFile | TemplateFolder)[] =>
           items.map((item) => {
             if ("folderName" in item) {
               return { ...item, items: updateFileContent(item.items) };
@@ -218,17 +204,15 @@ const MainPlaygroundPage = () => {
           updatedTemplateData.items
         );
 
-        // Sync with WebContainer
-        if (writeFileSync) {
-          await writeFileSync(filePath, fileToSave.content);
-          lastSyncedContent.current.set(fileToSave.id, fileToSave.content);
-          if (instance && instance.fs) {
-            await instance.fs.writeFile(filePath, fileToSave.content);
-          }
+        await writeFileSync(filePath, fileToSave.content);
+        lastSyncedContent.current.set(fileToSave.id, fileToSave.content);
+
+        if (instance && instance.fs) {
+          await instance.fs.writeFile(filePath, fileToSave.content);
         }
 
         const newTemplateData = await saveTemplateData(updatedTemplateData);
-        setTemplateData(newTemplateData || updatedTemplateData);
+        setTemplateData(newTemplateData ?? updatedTemplateData);
         // Update open files
         const updatedOpenFiles = openFiles.map((f) =>
           f.id === targetFileId
@@ -275,7 +259,7 @@ const MainPlaygroundPage = () => {
     try {
       await Promise.all(unsavedFiles.map((f) => handleSave(f.id)));
       toast.success(`Saved ${unsavedFiles.length} file(s)`);
-    } catch (error) {
+    } catch {
       toast.error("Failed to save some files");
     }
   };
@@ -486,9 +470,10 @@ const MainPlaygroundPage = () => {
                         suggestion={aiSuggestions.suggestion}
                         suggestionLoading={aiSuggestions.isLoading}
                         suggestionPosition={aiSuggestions.position}
-                        onAccepted={(editor: any, monaco: any) =>
-                          aiSuggestions.acceptSuggestion(editor, monaco)
-                        }
+                        onAcceptSuggestion={(
+                          editor: EditorProps,
+                          monaco: Monaco
+                        ) => aiSuggestions.acceptSuggestion(editor, monaco)}
                         onRejectSuggestion={(editor) =>
                           aiSuggestions.rejectSuggestion(editor)
                         }
