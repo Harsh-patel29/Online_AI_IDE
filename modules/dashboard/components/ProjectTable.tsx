@@ -54,6 +54,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { MarkedToggleButton } from "./marked-toggle";
+import { Templates } from "@prisma/client";
+
+export interface ProjectSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  template: Templates;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+}
 
 interface ProjectTableProps {
   projects: Project[];
@@ -62,7 +73,7 @@ interface ProjectTableProps {
     data: { title: string; description: string }
   ) => Promise<void>;
   onDeleteProject?: (id: string) => Promise<void>;
-  onDuplicateProject?: (id: string) => Promise<void>;
+  onDuplicateProject?: (id: string) => Promise<ProjectSummary | undefined>;
   onMarkasFavorite?: (id: string) => Promise<void>;
 }
 
@@ -116,10 +127,6 @@ export default function ProjectTable({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleMarkasFavorite = async (project: Project) => {
-    //    Write your logic here
   };
 
   const handleDeleteProject = async () => {
@@ -205,13 +212,13 @@ export default function ProjectTable({
                     <div className="w-8 h-8 rounded-full overflow-hidden">
                       <Image
                         src={project.user.image || "/placeholder.svg"}
-                        alt={project.user.name}
+                        alt={project.user?.name || "alt"}
                         width={32}
                         height={32}
                         className="object-cover"
                       />
                     </div>
-                    <span className="text-sm">{project.user.name}</span>
+                    <span className="text-sm">{project.user?.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import Editor, { type Monaco } from "@monaco-editor/react";
+import Editor, { EditorProps, type Monaco } from "@monaco-editor/react";
 
 import { TemplateFile } from "../lib/path-to-json";
 import {
@@ -17,7 +17,7 @@ interface PlaygroundEditorProps {
   suggestion: string | null;
   suggestionLoading: boolean;
   suggestionPosition: { line: number; column: number } | null;
-  onAcceptSuggestion: (editor: any, monaco: any) => void;
+  onAcceptSuggestion: (editor: EditorProps, monaco: any) => void;
   onRejectSuggestion: (editor: any) => void;
   onTriggerSuggestion: (type: string, editor: any) => void;
 }
@@ -140,8 +140,8 @@ export const PlaygroundEditor = ({
             ],
           };
         },
-        freeInlineCompletions: (completions: any) => {
-          console.log("freeInlineCompletions called");
+        disposeInlineCompletions: (completions: any) => {
+          console.log("disposeInlineCompletions called");
         },
       };
     },

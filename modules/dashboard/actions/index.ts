@@ -3,7 +3,40 @@
 import { db } from "@/lib/db";
 import { currentUser } from "@/modules/auth/actions";
 import { revalidatePath } from "next/cache";
+// import { Project, User } from "../types";
+import { Templates } from "@prisma/client";
 
+export interface ProjectSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  template: Templates;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+}
+
+interface User {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface getAllPlayGroundForUserReturns {
+  userId: string;
+  id: string;
+  title: string;
+  template: Templates;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  user: User;
+  StarMark: { isMarked: boolean }[];
+}
 export const toggleStarMarked = async (
   playgroundId: string,
   isChecked: boolean
@@ -40,7 +73,9 @@ export const toggleStarMarked = async (
   }
 };
 
-export const getAllPlayGroundForUser = async () => {
+export const getAllPlayGroundForUser = async (): Promise<
+  getAllPlayGroundForUserReturns[] | undefined
+> => {
   const user = await currentUser();
 
   try {
@@ -63,6 +98,7 @@ export const getAllPlayGroundForUser = async () => {
     return playground;
   } catch (error) {
     console.log(error);
+    return undefined;
   }
 };
 
@@ -117,7 +153,9 @@ export const editProjectById = async (
   }
 };
 
-export const duplicateProjectById = async (id: string) => {
+export const duplicateProjectById = async (
+  id: string
+): Promise<ProjectSummary | undefined> => {
   try {
     const originalPlayground = await db.playGround.findUnique({
       where: { id },
@@ -139,5 +177,6 @@ export const duplicateProjectById = async (id: string) => {
     return duplicatePlayground;
   } catch (error) {
     console.log(error);
+    return undefined;
   }
 };

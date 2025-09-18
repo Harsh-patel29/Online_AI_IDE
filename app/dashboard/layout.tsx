@@ -21,7 +21,6 @@ export default async function DashBaordLayout({
   const formattedPlayGroundData = playgroundData?.map((item) => ({
     id: item.id,
     name: item.title,
-    //todo: star
     starred: item.StarMark[0]?.isMarked || false,
     icon: techonologyIconMap[item.template] || "Code2",
   }));
@@ -29,9 +28,9 @@ export default async function DashBaordLayout({
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full overflow-x-hidden">
-        {/* {DashBoard Sidebar} */}
-        {/* @ts-ignore */}
-        <DashboardSidebar initialPlaygroundData={formattedPlayGroundData} />
+        <DashboardSidebar
+          initialPlaygroundData={formattedPlayGroundData ?? []}
+        />
         <main className="flex-1">{children}</main>
       </div>
     </SidebarProvider>

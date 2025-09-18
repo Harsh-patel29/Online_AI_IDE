@@ -20,7 +20,7 @@ import {
   Database,
   FlameIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import {
   Sidebar,
   SidebarContent,
@@ -41,7 +41,7 @@ import Image from "next/image";
 interface PlaygroundData {
   id: string;
   name: string;
-  icon: string; // Changed to string
+  icon: string;
   starred: boolean;
 }
 

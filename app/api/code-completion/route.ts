@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import { checkAndUseApi } from "@/modules/playground/actions/index";
-import { toast } from "sonner";
+
 dotenv.config();
 
 interface CodeSuggestionRequest {
@@ -59,10 +59,11 @@ export async function POST(request: NextRequest) {
         generatedAt: new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Context analysis error", error);
+
     return NextResponse.json(
-      { error: "Internal Server Error", message: error.message },
+      { error: "Internal Server Error", message: (error as Error).message },
       { status: 500 }
     );
   }
