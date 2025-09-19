@@ -92,6 +92,7 @@ export const checkAndUseApi = async () => {
   });
   return { success: true, message: "API call allowed" };
 };
+
 export const checkAndUseApiChatBot = async (chatMessageId: string) => {
   const LoggedInuser = await currentUser();
   const ChatMessage = await db.chatMessage.findUnique({
@@ -116,7 +117,7 @@ export const checkAndUseApiChatBot = async (chatMessageId: string) => {
 
   if (diff > twentyFourHours) {
     await db.chatMessage.update({
-      where: { id: LoggedInuser?.id },
+      where: { id: ChatMessage?.id },
       data: {
         apiCalls: 0,
         firstCallAt: now,
